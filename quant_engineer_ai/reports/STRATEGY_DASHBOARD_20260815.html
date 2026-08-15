@@ -1,0 +1,1159 @@
+<title>NMACD Strategy Command</title>
+<style>
+  /* ── TOKENS ── */
+  :root {
+    --bg:        #0c0e14;
+    --bg2:       #111420;
+    --surface:   #161b27;
+    --surface2:  #1c2233;
+    --border:    #222840;
+    --border2:   #2d3652;
+    --gold:      #c9973a;
+    --gold-dim:  #7a5a1e;
+    --gold-glow: rgba(201,151,58,0.12);
+    --green:     #2ec27e;
+    --green-dim: rgba(46,194,126,0.12);
+    --red:       #e05c6a;
+    --red-dim:   rgba(224,92,106,0.12);
+    --amber:     #e0983a;
+    --amber-dim: rgba(224,152,58,0.12);
+    --text:      #c0c8d8;
+    --text-hi:   #e8eaf0;
+    --muted:     #5a6378;
+    --muted2:    #3d4560;
+    --mono:      'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    --sans:      -apple-system, 'Segoe UI', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg:        #f0ead8;
+      --bg2:       #e8e0c8;
+      --surface:   #faf6ec;
+      --surface2:  #f0e8d0;
+      --border:    #d4c89a;
+      --border2:   #bfb080;
+      --gold:      #9a6e1a;
+      --gold-dim:  #c49a40;
+      --gold-glow: rgba(154,110,26,0.10);
+      --green:     #1a7a4a;
+      --green-dim: rgba(26,122,74,0.10);
+      --red:       #b83040;
+      --red-dim:   rgba(184,48,64,0.10);
+      --amber:     #a06010;
+      --amber-dim: rgba(160,96,16,0.10);
+      --text:      #2a2e3c;
+      --text-hi:   #0e1018;
+      --muted:     #7a7060;
+      --muted2:    #b0a888;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #0c0e14;
+    --bg2:       #111420;
+    --surface:   #161b27;
+    --surface2:  #1c2233;
+    --border:    #222840;
+    --border2:   #2d3652;
+    --gold:      #c9973a;
+    --gold-dim:  #7a5a1e;
+    --gold-glow: rgba(201,151,58,0.12);
+    --green:     #2ec27e;
+    --green-dim: rgba(46,194,126,0.12);
+    --red:       #e05c6a;
+    --red-dim:   rgba(224,92,106,0.12);
+    --amber:     #e0983a;
+    --amber-dim: rgba(224,152,58,0.12);
+    --text:      #c0c8d8;
+    --text-hi:   #e8eaf0;
+    --muted:     #5a6378;
+    --muted2:    #3d4560;
+  }
+  :root[data-theme="light"] {
+    --bg:        #f0ead8;
+    --bg2:       #e8e0c8;
+    --surface:   #faf6ec;
+    --surface2:  #f0e8d0;
+    --border:    #d4c89a;
+    --border2:   #bfb080;
+    --gold:      #9a6e1a;
+    --gold-dim:  #c49a40;
+    --gold-glow: rgba(154,110,26,0.10);
+    --green:     #1a7a4a;
+    --green-dim: rgba(26,122,74,0.10);
+    --red:       #b83040;
+    --red-dim:   rgba(184,48,64,0.10);
+    --amber:     #a06010;
+    --amber-dim: rgba(160,96,16,0.10);
+    --text:      #2a2e3c;
+    --text-hi:   #0e1018;
+    --muted:     #7a7060;
+    --muted2:    #b0a888;
+  }
+
+  /* ── RESET ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ── MONO UTILITY ── */
+  .mono { font-family: var(--mono); }
+  .num  { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-right: 1px solid var(--border);
+    padding-right: 20px;
+  }
+  .topbar-meta {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+  }
+  .topbar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .topbar-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+  }
+  .topbar-value {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-hi);
+    font-variant-numeric: tabular-nums;
+  }
+  .topbar-value.gold  { color: var(--gold); }
+  .topbar-value.green { color: var(--green); }
+  .topbar-value.amber { color: var(--amber); }
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pill {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    padding: 3px 9px;
+    border-radius: 2px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .pill-amber { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+  .pill-green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .pill-red   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red);   }
+  .pill-gold  { background: var(--gold-glow); color: var(--gold);  border: 1px solid var(--gold);  }
+  .pill-muted { background: var(--surface2);  color: var(--muted); border: 1px solid var(--border2); }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: calc(100vh - 52px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    padding: 0 16px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .sidebar-heading {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 12.5px;
+    transition: background 0.12s, color 0.12s;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: var(--surface); border-color: var(--border); }
+  .nav-item.active { background: var(--gold-glow); border-color: var(--gold-dim); color: var(--gold); }
+  .nav-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-pending { background: var(--muted2); }
+  .dot-active  { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-done    { background: var(--green); }
+  .dot-queue   { background: var(--muted2); border: 1px solid var(--muted); background: transparent; }
+
+  .sidebar-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 0;
+  }
+  .sidebar-stat-label { font-size: 11px; color: var(--muted); }
+  .sidebar-stat-val   { font-family: var(--mono); font-size: 11px; color: var(--text-hi); font-variant-numeric: tabular-nums; }
+  .sidebar-stat-val.gold { color: var(--gold); }
+
+  /* ── MAIN ── */
+  .main { padding: 28px 32px; max-width: 900px; }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 40px; scroll-margin-top: 70px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-eyebrow {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-hi);
+    text-wrap: balance;
+    line-height: 1.3;
+  }
+  .section-sub {
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-hi);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-body { font-size: 13px; color: var(--text); line-height: 1.65; }
+  .card-body p { margin-bottom: 8px; }
+  .card-body p:last-child { margin-bottom: 0; }
+  .card.priority {
+    border-color: var(--gold-dim);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(201,151,58,0.04) 100%);
+  }
+  .card.active-work { border-color: var(--amber); }
+  .card.queued      { opacity: 0.6; border-style: dashed; }
+
+  /* ── STEP STATUS ROW ── */
+  .step-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step-row:last-child { border-bottom: none; }
+  .step-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 24px;
+    padding-top: 1px;
+  }
+  .step-content {}
+  .step-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-hi);
+    margin-bottom: 3px;
+  }
+  .step-detail { font-size: 12px; color: var(--muted); }
+  .step-status {}
+
+  /* ── TABLES ── */
+  .tbl-wrap { overflow-x: auto; border-radius: 4px; border: 1px solid var(--border); margin: 12px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead { background: var(--surface2); }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  .td-mono { font-family: var(--mono); }
+  .td-gold  { color: var(--gold);  font-family: var(--mono); }
+  .td-green { color: var(--green); font-family: var(--mono); }
+  .td-amber { color: var(--amber); font-family: var(--mono); }
+  .td-muted { color: var(--muted); font-family: var(--mono); }
+  .td-red   { color: var(--red);   font-family: var(--mono); }
+
+  /* ── STATE MACHINE ── */
+  .state-machine {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 14px 0;
+  }
+  .state-node {
+    flex: 1;
+    padding: 16px 14px;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .state-node:last-child { border-right: none; }
+  .state-node.s0 { border-top: 3px solid var(--muted2); }
+  .state-node.s1 { border-top: 3px solid var(--amber); }
+  .state-node.s2 { border-top: 3px solid var(--red); }
+  .state-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .state-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .s0 .state-name { color: var(--muted); }
+  .s1 .state-name { color: var(--amber); }
+  .s2 .state-name { color: var(--red); }
+  .state-body { font-size: 11.5px; color: var(--text); line-height: 1.55; }
+  .state-trigger {
+    margin-top: 10px;
+    padding: 7px 10px;
+    background: var(--surface2);
+    border-radius: 3px;
+    font-size: 11px;
+    color: var(--muted);
+    border-left: 2px solid var(--border2);
+  }
+  .state-trigger strong { color: var(--gold); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .state-arrow {
+    display: none; /* shown via border-right on state-node */
+  }
+
+  /* ── CODE BLOCK ── */
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+    line-height: 1.65;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  .hl-gold   { color: var(--gold); }
+  .hl-green  { color: var(--green); }
+  .hl-amber  { color: var(--amber); }
+  .hl-red    { color: var(--red); }
+  .hl-muted  { color: var(--muted); }
+
+  /* ── DASHBOARD MOCKUP ── */
+  .hud {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 0;
+    font-family: var(--mono);
+    font-size: 12px;
+    overflow: hidden;
+    max-width: 420px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .hud-title {
+    background: var(--surface2);
+    padding: 8px 14px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+  }
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 14px;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.4;
+  }
+  .hud-row:last-child { border-bottom: none; }
+  .hud-k { color: var(--muted); font-size: 11px; }
+  .hud-v { color: var(--text-hi); font-size: 11px; }
+  .hud-v.up   { color: var(--green); }
+  .hud-v.dn   { color: var(--red); }
+  .hud-v.gold { color: var(--gold); }
+  .hud-v.amb  { color: var(--amber); }
+  .hud-divider {
+    background: var(--surface);
+    padding: 4px 14px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted2);
+    border-bottom: 1px solid var(--border);
+  }
+  .hud-ticket { padding: 8px 14px 4px; border-bottom: 1px solid var(--border); }
+  .hud-ticket:last-of-type { border-bottom: none; }
+  .hud-ticket-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 10px;
+  }
+  .hud-ticket-id { color: var(--muted); }
+  .hud-ticket-status { }
+  .hud-ticket-body { font-size: 10.5px; color: var(--muted); padding-left: 8px; }
+
+  /* ── ALERT BANNER ── */
+  .alert {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .alert-gold  { background: var(--gold-glow); border: 1px solid var(--gold-dim); }
+  .alert-amber { background: var(--amber-dim); border: 1px solid rgba(224,152,58,0.4); }
+  .alert-red   { background: var(--red-dim);   border: 1px solid rgba(224,92,106,0.4); }
+  .alert-icon  { flex-shrink: 0; font-size: 14px; line-height: 1.55; }
+  .alert-body  { color: var(--text); }
+  .alert-body strong { color: var(--text-hi); }
+
+  /* ── THRESHOLD SELECTOR VIZ ── */
+  .threshold-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .threshold-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 90px;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+  }
+  .threshold-label { font-family: var(--mono); color: var(--text-hi); text-align: right; }
+  .threshold-track {
+    height: 18px;
+    background: var(--surface2);
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+  .threshold-fill {
+    height: 100%;
+    background: var(--gold);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .threshold-row:hover .threshold-fill { opacity: 0.8; }
+  .threshold-note { color: var(--muted); font-size: 11px; }
+
+  /* ── PIVOT DIAGRAM ── */
+  .pivot-diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    position: relative;
+    height: 160px;
+    overflow: hidden;
+    margin: 14px 0;
+  }
+  .pivot-diagram svg { width: 100%; height: 100%; }
+
+  /* ── MISC ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } .shell { grid-template-columns: 1fr; } .sidebar { display: none; } }
+  .label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .small { font-size: 11.5px; color: var(--muted); }
+  hr.rule { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border2);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── BLINKING CURSOR ── */
+  .cursor { display: inline-block; width: 8px; height: 13px; background: var(--gold); vertical-align: middle; animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+</style>
+
+<!-- ── TOP BAR ── -->
+<div class="topbar">
+  <div class="topbar-logo">NMACD / XAUUSD</div>
+  <div class="topbar-meta">
+    <div class="topbar-item">
+      <span class="topbar-label">Symbol</span>
+      <span class="topbar-value gold">XAU/USD · 3M</span>
+    </div>
+    <div class="topbar-item">
+      <span class="topbar-label">Baseline (K/S OFF)</span>
+      <span class="topbar-value green">$10,629.07</span>
+    </div>
+    <div class="topbar-item">
+      <span class="topbar-label">Bundle</span>
+      <span class="topbar-value">PB-28 / CN-30 / TR-30</span>
+    </div>
+    <div class="topbar-item">
+      <span class="topbar-label">Regime TF</span>
+      <span class="topbar-value">1H Pivot Structure</span>
+    </div>
+    <div class="topbar-item">
+      <span class="topbar-label">Date</span>
+      <span class="topbar-value">2026-08-15</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill pill-amber">STEP 0 ACTIVE</span>
+  </div>
+</div>
+
+<!-- ── SHELL ── -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Directive Track</div>
+      <a href="#step0" class="nav-item active">
+        <span class="nav-dot dot-active"></span>Step 0 · Loose Ends
+      </a>
+      <a href="#step1" class="nav-item">
+        <span class="nav-dot dot-queue"></span>Step 1 · Merge
+      </a>
+      <a href="#audit" class="nav-item">
+        <span class="nav-dot dot-queue"></span>Code Audit
+      </a>
+      <a href="#oos" class="nav-item">
+        <span class="nav-dot dot-queue"></span>Out-of-Sample Test
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Step 0 Sections</div>
+      <a href="#s1a" class="nav-item">
+        <span class="nav-dot dot-active"></span>1a · DD + KS Sweep
+      </a>
+      <a href="#s1b" class="nav-item">
+        <span class="nav-dot dot-active"></span>1b · Smart Kill Switch
+      </a>
+      <a href="#s2" class="nav-item">
+        <span class="nav-dot dot-pending"></span>2 · Matrix Mismatches
+      </a>
+      <a href="#s3" class="nav-item">
+        <span class="nav-dot dot-pending"></span>3 · Spread Guard
+      </a>
+      <a href="#s4" class="nav-item">
+        <span class="nav-dot dot-pending"></span>4 · Symbol Spec
+      </a>
+      <a href="#s5" class="nav-item">
+        <span class="nav-dot dot-pending"></span>5 · Position Sizing
+      </a>
+      <a href="#s6" class="nav-item">
+        <span class="nav-dot dot-pending"></span>6 · Emergency Stop
+      </a>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Key Numbers</div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">Baseline net</span>
+        <span class="sidebar-stat-val gold">$10,629.07</span>
+      </div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">Kill switch</span>
+        <span class="sidebar-stat-val">OFF (pre-sweep)</span>
+      </div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">PB window</span>
+        <span class="sidebar-stat-val">28 bars</span>
+      </div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">CN window</span>
+        <span class="sidebar-stat-val">30 bars</span>
+      </div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">TR window</span>
+        <span class="sidebar-stat-val">30 bars</span>
+      </div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">Spread guard</span>
+        <span class="sidebar-stat-val">500 pts (verify)</span>
+      </div>
+      <div class="sidebar-stat">
+        <span class="sidebar-stat-label">Matrix mismatch</span>
+        <span class="sidebar-stat-val">2 cells · TBD</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Excluded (Parked)</div>
+      <div style="font-size:11.5px; color: var(--muted); line-height:1.65; padding: 2px 0;">
+        Swing-structure module (new research — not a loose end)<br>
+        Two blocked Minor Countercycle cells
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ── STEP 0 HEADER ── -->
+    <div class="section" id="step0">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Active Directive · Step 0</div>
+          <div class="section-title">Close All Loose Ends Before Merge</div>
+          <div class="section-sub">Six sections. All must close before Step 1 begins. Kill switch is Section 1a — highest priority.</div>
+        </div>
+        <span class="pill pill-amber" style="white-space:nowrap;">0 / 6 Closed</span>
+      </div>
+
+      <div class="alert alert-gold">
+        <span class="alert-icon">&#9650;</span>
+        <div class="alert-body">
+          <strong>Baseline is provisional.</strong> The accepted $10,629.07 was measured with the kill switch OFF. This number will be replaced by the result of Section 1a's final re-run — with the switch ON at the selected threshold — because that is the configuration that will actually go live.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="step-row">
+          <div class="step-num">1a</div>
+          <div class="step-content">
+            <div class="step-name">Kill Switch — Baseline DD + Threshold Sweep</div>
+            <div class="step-detail">Re-run bundle with switch OFF to capture per-window max DD, then sweep 20/30/40/50/60/75% thresholds. Select on "never catastrophic" criterion. Final re-run with switch ON replaces $10,629.07.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-amber">PENDING</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">1b</div>
+          <div class="step-content">
+            <div class="step-name">Smart Kill Switch — Design & Implementation</div>
+            <div class="step-detail">Per-entry trailing protection using 1H pivot structure (HH/HL/LH/LL). Armed on confirmed structural peak. Fires if price retraces X% of the confirmed leg. Owner-specified design — see Section 1b detail below.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-amber">PENDING</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-name">Matrix Value Mismatches — Trace &amp; Resolve</div>
+            <div class="step-detail">Two Transition-cell inputs load as 1 and 10. Config lock expects 0 and 0. Trace to source (swept or inherited default). Make lock and source agree.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-muted">PENDING</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-name">Spread Guard — Confirm Active in Build</div>
+            <div class="step-detail">Verify the 500-point spread filter is compiled in, not commented out, not bypassed by a parameter default.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-muted">PENDING</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-name">Broker Symbol Spec — Tester Side Only</div>
+            <div class="step-detail">Tick size, tick value, volume step, stop level, filling mode for XAUUSD from portable tester. Do not touch live terminal.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-muted">PENDING</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-name">Position Sizing — Report Options (Owner Decides)</div>
+            <div class="step-detail">Fixed lot vs. proportional-to-equity. Present both. Owner selects. Then run the 0.01→blowup stress test sequence after kill switch is proven.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-muted">OWNER DECISION</span></div>
+        </div>
+        <div class="step-row">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-name">Emergency Stop Procedure — Written Document</div>
+            <div class="step-detail">Exact MT5 steps: disable auto-trading → close all positions → confirm nothing open → disable EA. Threshold set from cross-referenced cell DD data.</div>
+          </div>
+          <div class="step-status"><span class="pill pill-muted">PENDING</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECTION 1b ── -->
+    <div class="section" id="s1b">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Step 0 · Section 1b</div>
+          <div class="section-title">Smart Kill Switch — Design Specification</div>
+          <div class="section-sub">Per-entry trailing stop armed by 1H pivot structure, executed on the 3M chart.</div>
+        </div>
+        <span class="pill pill-amber">DESIGN PHASE</span>
+      </div>
+
+      <div class="alert alert-amber">
+        <span class="alert-icon">&#9888;</span>
+        <div class="alert-body">
+          <strong>Goal:</strong> Protect profit at confirmed structural peaks without closing trades that are in temporary drawdown inside a still-valid 1H regime leg. The kill switch must not interfere with normal strategy operation — it activates only after structural confirmation, not on 3M noise.
+        </div>
+      </div>
+
+      <!-- STATE MACHINE -->
+      <div class="label-row">
+        <div class="section-eyebrow" style="margin-bottom:0">Per-Position State Machine</div>
+      </div>
+      <div class="state-machine">
+        <div class="state-node s0">
+          <div class="state-label">State 0</div>
+          <div class="state-name">DISARMED</div>
+          <div class="state-body">Default on entry. Kill switch cannot fire. Normal trade management applies (NMACD exit signal, manual close).</div>
+          <div class="state-trigger"><strong>Arm →</strong> BUY: 1H bar closes above prior confirmed swing HH. SELL: 1H bar closes below prior confirmed swing LL.</div>
+        </div>
+        <div class="state-node s1">
+          <div class="state-label">State 1</div>
+          <div class="state-name">ARMED</div>
+          <div class="state-body">Arm reference = confirmed HH (buy) or LL (sell). Trigger price = arm_price − (leg × threshold%). Per-entry: each stack position carries its own trigger.</div>
+          <div class="state-trigger"><strong>Fire →</strong> BUY: bid &lt; trigger. SELL: ask &gt; trigger. Scope: only fires if trade ever reached profit above entry.</div>
+        </div>
+        <div class="state-node s2">
+          <div class="state-label">State 2</div>
+          <div class="state-name">FIRED</div>
+          <div class="state-body">Position closed. Event logged: entry / arm / trigger / close / PnL. No re-entry on same swing leg — wait for new NMACD signal.</div>
+          <div class="state-trigger"><strong>Reset →</strong> DISARMED (position closed, state cleared).</div>
+        </div>
+      </div>
+
+      <!-- PIVOT DIAGRAM -->
+      <div class="label-row" style="margin-top:20px;">
+        <div class="section-eyebrow" style="margin-bottom:0">1H Pivot Structure — XAUUSD Uptrend Example</div>
+      </div>
+      <div class="pivot-diagram">
+        <svg viewBox="0 0 800 140" preserveAspectRatio="none" style="overflow:visible">
+          <!-- Grid lines -->
+          <line x1="0" y1="35" x2="800" y2="35" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="70" x2="800" y2="70" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="105" x2="800" y2="105" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <!-- Price line: uptrend with clear HH/HL/LH/LL -->
+          <polyline points="20,110 80,90 140,100 220,65 290,85 380,40 460,60 560,20 640,42 760,18"
+            fill="none" stroke="#c9973a" stroke-width="2" stroke-linejoin="round"/>
+          <!-- HL labels (lows in uptrend) -->
+          <circle cx="80" cy="90" r="4" fill="#2ec27e"/>
+          <text x="82" y="86" font-family="monospace" font-size="10" fill="#2ec27e">HL</text>
+          <circle cx="140" cy="100" r="4" fill="#2ec27e"/>
+          <text x="142" y="96" font-family="monospace" font-size="10" fill="#2ec27e">HL</text>
+          <circle cx="290" cy="85" r="4" fill="#2ec27e"/>
+          <text x="292" y="81" font-family="monospace" font-size="10" fill="#2ec27e">HL</text>
+          <circle cx="460" cy="60" r="4" fill="#2ec27e"/>
+          <text x="462" y="56" font-family="monospace" font-size="10" fill="#2ec27e">HL</text>
+          <circle cx="640" cy="42" r="4" fill="#2ec27e"/>
+          <text x="642" y="38" font-family="monospace" font-size="10" fill="#2ec27e">HL</text>
+          <!-- HH labels (highs in uptrend) -->
+          <circle cx="220" cy="65" r="4" fill="#c9973a"/>
+          <text x="222" y="62" font-family="monospace" font-size="10" fill="#c9973a">HH</text>
+          <circle cx="380" cy="40" r="4" fill="#c9973a"/>
+          <text x="382" y="37" font-family="monospace" font-size="10" fill="#c9973a">HH</text>
+          <circle cx="560" cy="20" r="4" fill="#c9973a"/>
+          <text x="562" y="17" font-family="monospace" font-size="10" fill="#c9973a">HH ← ARM</text>
+          <!-- Kill switch trigger line -->
+          <line x1="560" y1="20" x2="800" y2="20" stroke="#e0983a" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="560" y1="40" x2="800" y2="40" stroke="#e05c6a" stroke-width="1" stroke-dasharray="4,3"/>
+          <!-- Trigger zone annotation -->
+          <rect x="562" y="21" width="130" height="18" fill="rgba(224,92,106,0.12)" rx="2"/>
+          <text x="565" y="33" font-family="monospace" font-size="10" fill="#e05c6a">TRIGGER ZONE (50%)</text>
+          <!-- Fire event -->
+          <circle cx="760" cy="18" r="5" fill="none" stroke="#e05c6a" stroke-width="2"/>
+          <text x="762" y="14" font-family="monospace" font-size="10" fill="#e05c6a">FIRE</text>
+          <!-- Regime label -->
+          <rect x="10" y="120" width="120" height="16" rx="2" fill="rgba(46,194,126,0.15)"/>
+          <text x="14" y="132" font-family="monospace" font-size="10" fill="#2ec27e" letter-spacing="1">1H UPTREND</text>
+        </svg>
+      </div>
+
+      <!-- THRESHOLD SWEEP -->
+      <div class="label-row" style="margin-top:20px;">
+        <div class="section-eyebrow" style="margin-bottom:0">Threshold Sweep Plan — Section 1a</div>
+      </div>
+      <div class="threshold-bars">
+        <div class="threshold-row">
+          <div class="threshold-label">20%</div>
+          <div class="threshold-track"><div class="threshold-fill" style="width:20%"></div></div>
+          <div class="threshold-note">Very tight — likely cuts winners early</div>
+        </div>
+        <div class="threshold-row">
+          <div class="threshold-label">30%</div>
+          <div class="threshold-track"><div class="threshold-fill" style="width:30%"></div></div>
+          <div class="threshold-note">Tighter candidate range</div>
+        </div>
+        <div class="threshold-row">
+          <div class="threshold-label">40%</div>
+          <div class="threshold-track"><div class="threshold-fill" style="width:40%"></div></div>
+          <div class="threshold-note">Moderate — sweep candidate</div>
+        </div>
+        <div class="threshold-row" style="opacity:1">
+          <div class="threshold-label" style="color:var(--gold)">50%</div>
+          <div class="threshold-track" style="border-color:var(--gold-dim)"><div class="threshold-fill" style="width:50%;opacity:0.9;background:var(--gold)"></div></div>
+          <div class="threshold-note" style="color:var(--gold)">Owner estimate — primary candidate</div>
+        </div>
+        <div class="threshold-row">
+          <div class="threshold-label">60%</div>
+          <div class="threshold-track"><div class="threshold-fill" style="width:60%"></div></div>
+          <div class="threshold-note">Looser — more retracement allowed</div>
+        </div>
+        <div class="threshold-row">
+          <div class="threshold-label">75%</div>
+          <div class="threshold-track"><div class="threshold-fill" style="width:75%"></div></div>
+          <div class="threshold-note">Very loose — near full retracement</div>
+        </div>
+      </div>
+      <div class="small" style="margin-top:6px;">Selection criterion: threshold where the switch never causes a catastrophic outcome anywhere in test data — at minimum cost to net profit. NOT the highest net profit figure.</div>
+
+      <!-- MT5 CODE SNIPPET -->
+      <div style="margin-top:20px;">
+        <div class="section-eyebrow">MT5 Implementation — Pseudocode Sketch</div>
+        <pre><span class="hl-muted">// H1 pivot detection called from 3M chart</span>
+<span class="hl-muted">// pivot_bars = 5 H1 bars each side (expose as input)</span>
+
+<span class="hl-gold">double</span> GetH1SwingHigh(<span class="hl-gold">string</span> symbol, <span class="hl-gold">int</span> lookback) {
+  <span class="hl-gold">double</span> h1_highs[];
+  CopyHigh(symbol, <span class="hl-amber">PERIOD_H1</span>, 1, lookback + pivot_bars + 1, h1_highs);
+  <span class="hl-muted">// Find bar where high > all pivot_bars left AND right → pivot high</span>
+  <span class="hl-muted">// Return most recent confirmed pivot high close</span>
+}
+
+<span class="hl-muted">// On each new H1 bar close (detected via iTime comparison):</span>
+<span class="hl-green">//   1. Update swing registry (HH / HL / LH / LL)</span>
+<span class="hl-green">//   2. For each open position: check arm condition</span>
+<span class="hl-green">//   3. If newly armed: calc trigger = arm_price - (leg * threshold)</span>
+<span class="hl-green">//   4. Store trigger price on ticket struct</span>
+
+<span class="hl-muted">// On each 3M tick (OnTick):</span>
+<span class="hl-amber">//   For each ARMED position:</span>
+<span class="hl-amber">//     BUY:  if Bid &lt; trigger → OrderClose(ticket, ...)</span>
+<span class="hl-amber">//     SELL: if Ask &gt; trigger → OrderClose(ticket, ...)</span>
+<span class="hl-amber">//   Log: timestamp | entry | arm | trigger | close | PnL</span>
+
+<span class="hl-muted">// Symbol-agnostic: use _Symbol everywhere, never "XAUUSD"</span>
+<span class="hl-muted">// Expose: pivot_bars, threshold_pct, spread_guard_pts as inputs</span></pre>
+      </div>
+
+      <!-- HUD MOCKUP -->
+      <div style="margin-top:20px;">
+        <div class="section-eyebrow" style="margin-bottom:10px;">Proposed MT5 On-Chart Dashboard</div>
+        <div class="hud">
+          <div class="hud-title">
+            <span>NMACD · XAU/USD · 3M</span>
+            <span style="color:var(--muted)">v2.1</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-k">1H Regime</span>
+            <span class="hud-v up">UPTREND ▲</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-k">NMACD State</span>
+            <span class="hud-v gold">BLUE ●</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-k">Spread</span>
+            <span class="hud-v up">1.2 pts ✓</span>
+          </div>
+          <div class="hud-divider">Kill Switch Status</div>
+          <div class="hud-ticket">
+            <div class="hud-ticket-header">
+              <span class="hud-ticket-id">#00312</span>
+              <span class="hud-ticket-status" style="color:var(--amber)">ARMED</span>
+            </div>
+            <div class="hud-ticket-body">
+              Entry&nbsp;&nbsp;2700.00 &nbsp;|&nbsp; HH&nbsp;&nbsp;2750.00<br>
+              Trigger 2725.00 &nbsp;|&nbsp; Dist −25 pts
+            </div>
+          </div>
+          <div class="hud-ticket">
+            <div class="hud-ticket-header">
+              <span class="hud-ticket-id">#00313</span>
+              <span class="hud-ticket-status" style="color:var(--muted)">DISARMED</span>
+            </div>
+            <div class="hud-ticket-body">Entry 2698.50 &nbsp;|&nbsp; Awaiting HH confirm</div>
+          </div>
+          <div class="hud-ticket">
+            <div class="hud-ticket-header">
+              <span class="hud-ticket-id">#00314</span>
+              <span class="hud-ticket-status" style="color:var(--muted)">DISARMED</span>
+            </div>
+            <div class="hud-ticket-body">Entry 2696.80 &nbsp;|&nbsp; Awaiting HH confirm</div>
+          </div>
+          <div class="hud-divider">Account</div>
+          <div class="hud-row">
+            <span class="hud-k">Equity</span>
+            <span class="hud-v gold">$11,450.22</span>
+          </div>
+          <div class="hud-row">
+            <span class="hud-k">Session P/L</span>
+            <span class="hud-v up">+$820.15</span>
+          </div>
+        </div>
+        <div class="small" style="margin-top:8px;">Implemented via MT5 <span class="tag">ObjectCreate(OBJECT_LABEL)</span> — updated on every tick. Panel position: top-right, clear of price action.</div>
+      </div>
+    </div>
+
+    <hr class="rule">
+
+    <!-- ── SECTION 2 ── -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Step 0 · Section 2</div>
+          <div class="section-title">Matrix Value Mismatches</div>
+          <div class="section-sub">Two Transition-cell inputs loaded as 1 and 10. Config lock expects 0 and 0.</div>
+        </div>
+        <span class="pill pill-muted">PENDING</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Cell</th>
+              <th>Current Value</th>
+              <th>Lock Expects</th>
+              <th>Trace Required</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-mono">TR-Mismatch-A</td>
+              <td class="td-amber">1</td>
+              <td class="td-muted">0</td>
+              <td>Real sweep result, or inherited untested default?</td>
+              <td><span class="pill pill-muted">UNTRACED</span></td>
+            </tr>
+            <tr>
+              <td class="td-mono">TR-Mismatch-B</td>
+              <td class="td-amber">10</td>
+              <td class="td-muted">0</td>
+              <td>Real sweep result, or inherited untested default?</td>
+              <td><span class="pill pill-muted">UNTRACED</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-body small" style="margin-top:8px;">Watch for: same untested-inherited-default pattern as EBSS. A value that "came from somewhere" but can't be traced is not a decided value — treat it as a new sweep candidate.</div>
+    </div>
+
+    <!-- ── SECTION 5 ── -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Step 0 · Section 5</div>
+          <div class="section-title">Position Sizing</div>
+          <div class="section-sub">Owner decision — Codex presents options, does not select.</div>
+        </div>
+        <span class="pill pill-muted">OWNER DECISION</span>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Fixed Lot</div>
+          <div class="card-body">Same lot size every trade regardless of equity. Risk per trade is predictable and does not compound. Drawdown in absolute $ is bounded by the fixed size.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Proportional to Equity</div>
+          <div class="card-body">Lot size = f(current equity). Compounds gains and losses. Drawdown % stays relatively stable but absolute $ swings grow as account grows. Captures compound growth.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="section-eyebrow" style="margin-bottom:10px;">Stress Test Sequence (after kill switch proven)</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Block</th>
+                <th>Windows</th>
+                <th>Lot Size</th>
+                <th>Stop Condition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="td-mono">Block 1</td><td>PB / CN / TR</td><td class="td-gold">0.01</td><td>None</td></tr>
+              <tr><td class="td-mono">Block 2</td><td>PB / CN / TR</td><td class="td-gold">0.02</td><td>None</td></tr>
+              <tr><td class="td-mono">Block 3</td><td>PB / CN / TR</td><td class="td-gold">0.03</td><td>None</td></tr>
+              <tr><td class="td-mono">...</td><td>...</td><td class="td-muted">+0.01 / block</td><td>...</td></tr>
+              <tr><td class="td-mono">Block N</td><td>PB / CN / TR</td><td class="td-red">0.0N</td><td class="td-red">Account blown OR DD = initial capital</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="small" style="margin-top:6px;">Record: lot size at which catastrophic drawdown first occurs → this becomes the sizing ceiling for live deployment.</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 1 QUEUED ── -->
+    <div class="section" id="step1">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Queued · Step 1</div>
+          <div class="section-title">Production Merge</div>
+          <div class="section-sub">Not started. Begins only when all Step 0 sections report closed.</div>
+        </div>
+        <span class="pill pill-muted">QUEUED</span>
+      </div>
+      <div class="card queued">
+        <div class="card-body">
+          Merges every research-only value (exit delays, three stack caps, cap-freeze fix, kill switch configuration) into the single EA file that runs a live account. Must reproduce the new Step 0 accepted baseline exactly after merge. If reproduction fails: stop. Do not proceed on a configuration that can't be verified.<br><br>
+          <span class="tag">File: CODEX_DIRECTIVE_STEP1_PRODUCTION_MERGE_20260815.md</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SYMBOL AGNOSTIC ── -->
+    <div class="section" id="oos">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Design Constraint</div>
+          <div class="section-title">Symbol-Agnostic EA</div>
+          <div class="section-sub">Strategy must work on any symbol the EA is attached to. Parameters are fine-tuned for XAUUSD but the logic must not discriminate.</div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>Replace</th><th>With</th><th>Reason</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-red td-mono">"XAUUSD" (hardcoded)</td>
+              <td class="td-green td-mono">_Symbol</td>
+              <td>EA runs on whatever chart it is attached to</td>
+            </tr>
+            <tr>
+              <td class="td-red td-mono">Hardcoded tick size/value</td>
+              <td class="td-green td-mono">SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_SIZE)</td>
+              <td>Metals don't follow standard forex assumptions</td>
+            </tr>
+            <tr>
+              <td class="td-red td-mono">500-pt spread (hardcoded)</td>
+              <td class="td-green td-mono">Input parameter InpSpreadGuard</td>
+              <td>Calibrate per symbol via .set file</td>
+            </tr>
+            <tr>
+              <td class="td-red td-mono">pivot_bars = 5 (hardcoded)</td>
+              <td class="td-green td-mono">Input parameter InpPivotBars</td>
+              <td>Different symbols may warrant different lookback</td>
+            </tr>
+            <tr>
+              <td class="td-red td-mono">kill_threshold = 0.50 (hardcoded)</td>
+              <td class="td-green td-mono">Input parameter InpKillThreshold</td>
+              <td>Threshold selected per Section 1a sweep; .set file stores the XAUUSD-specific value</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="small" style="margin-top:8px;">Runtime behavior: EA runs on the chart it is attached to. XAUUSD-specific parameter sets are loaded via the <span class="tag">XAUUSD_3M.set</span> file. Other symbols get their own <span class="tag">.set</span> files — the EA never prevents this.</div>
+    </div>
+
+    <div style="height:40px;"></div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);border-top:1px solid var(--border);padding-top:14px;">
+      NMACD Strategy · XAUUSD · Status as of 2026-08-15 &nbsp;·&nbsp; Step 0 Active &nbsp;·&nbsp; 6 sections pending &nbsp;<span class="cursor"></span>
+    </div>
+
+  </main>
+</div>
