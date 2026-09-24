@@ -185,7 +185,9 @@ def generate_signal(seed: int, regimes: Sequence[int], s: Strategy) -> List[int]
     return base
 
 
-def simulate(seed: int, m: Market, s: Strategy, g: Guards, a: Account) -> PathResult:
+def simulate(seed: int, m: Market, s: Strategy, g: Guards, a: Account,
+             trace: Optional[List[float]] = None) -> PathResult:
+    """If `trace` is a list, end-of-week equity is appended to it (flat after ruin)."""
     prices, regimes, week_starts = generate_market(seed, m)
     signal = generate_signal(seed, regimes, s)
     week_start_set = set(week_starts)
@@ -280,6 +282,8 @@ def simulate(seed: int, m: Market, s: Strategy, g: Guards, a: Account) -> PathRe
             close_all(price)
             # Gaps can jump past the stop-out level; assume negative-balance protection (floor at 0).
             balance = max(0.0, balance)
+            if trace is not None:
+                trace.extend([balance] * (m.weeks - len(trace)))
             return PathResult(balance, (balance / a.balance - 1) * 100, max(max_dd, 100 - a.ruin_pct),
                               True, hard_halt, baskets, guard_flattens)
 
@@ -287,6 +291,8 @@ def simulate(seed: int, m: Market, s: Strategy, g: Guards, a: Account) -> PathRe
             balance += s.swap_per_leg_day * len(legs)
         if last_bar_of_week and s.friday_flatten and legs:
             close_all(price)
+        if trace is not None and last_bar_of_week:
+            trace.append(balance + floating(price))
 
     close_all(prices[-1])
     return PathResult(balance, (balance / a.balance - 1) * 100, max_dd, False, hard_halt, baskets, guard_flattens)
