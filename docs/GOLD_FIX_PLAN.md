@@ -15,6 +15,53 @@ Neither one makes the strategy profitable. The guards cap the damage when it's
 wrong, and the review tells you whether it has an edge. No code change can
 guarantee profit, and anyone who says otherwise is selling something.
 
+## 0. Scope, lineage and approval (read before applying anything)
+
+This section was added after the 2026-09-23 evidence-recovery handoff.
+
+- **Which EA this targets.** The hook snippets in section 2 were written
+  against the **production Weekly/M60 lineage**
+  (`NMACD_BT2_WEEKLY_REGIME_GATE_SMA6_M60_2Y_20260827C`, v2.06, the source
+  pasted into the cloud session). The active continuation work is a **separate
+  lineage**: the Stage 8 QOS skeleton
+  (`NMACD_BT2_QOS_SKELETON_STAGE8_MA_RIBBON_20260922.mq5`, 296 inputs), which
+  hasn't been reviewed here. Don't apply these snippets to Stage 8 without
+  re-locating each function in that source.
+- **Don't touch a frozen batch.** Don't edit any source or EX5 that an active
+  tester batch is using (currently `STAGE8_CLOSURE_20260923_R3`).
+- **The guards change behaviour.** Every guard can veto a trade the tested EA
+  would have taken, or close a basket early, so none of them belongs in
+  behaviour-preserving cleanup. Adopt them **one mechanism at a time**, each
+  with the user's approval, its own compile, and its own evidence check. A
+  sensible order: equity-drawdown halt → daily loss → basket stop → spread
+  guard → rollover window → news blackout.
+- **First entries come from two routes.** In the tested settings
+  (`InpUseArtifactCanonicalContract=false`) a basket's first leg can come from
+  the H1 permission dot **or** from a valid M3 signal under existing H1
+  permission. The recovered S7 May run had 24 H1-route and 106 M3-route first
+  entries. The user chose to **keep** this behaviour. In v2.06 both routes and
+  all adds go through `ExecuteAutoTradeIfNeeded()`, so hook (e) below applies
+  the same veto to all three. Confirm that's still true in any other lineage.
+- **Evidence before new backtests.** `tools/basket_montecarlo.py audit` and
+  `tools/audit_review.py` work on audit CSVs that already exist. Run them on
+  the recovered Stage 7 / L2C audits before asking for new tester runs.
+
+### Known source defect (not applied here)
+
+The `artifact_canonical_contract` line in `OnInit()` prints a hard-coded
+`bsb_sbs_conditional=1`. That's a literal, not the value of
+`InpUseConditionalBsbSbsH4Extreme`, so the log line can't prove the filter's
+state. It's present in v2.06 and, per the handoff, in Stages 7 and 8. Fix it in
+a checkpointed candidate only, after the frozen batch is safe:
+
+1. Replace `bsb_sbs_conditional=1` with `bsb_sbs_conditional=%d`.
+2. Insert `InpUseConditionalBsbSbsH4Extreme?1:0,` directly after the
+   `InpH4StableConfirmBars==1?1:0,` argument.
+3. Check the following arguments still line up (in v2.06 the next one is
+   `InpH4TransitionExtremeLevel` for `h4_extreme_level=%.6f`).
+4. Compile with zero errors and warnings, and record the new EX5 hash. Don't
+   reuse the old one.
+
 ---
 
 ## 1. Install
