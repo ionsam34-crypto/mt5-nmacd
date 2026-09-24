@@ -97,24 +97,37 @@ The numbers that matter for gold right now (≈ $4,300, realized volatility ≈ 
 - Each 0.01 lot leg (100 oz contract; check `contract_size` in the
   `broker_symbol_spec` log line) moves **$1 per $1** of gold.
 
-So the most legs a basket stop can carry through a normal (1σ) adverse day is
-roughly:
+**Size by leverage, not by one bad day.** An earlier version of this guide
+sized the stack so a basket stop could survive one 1σ day. The Monte Carlo
+(`tools/basket_montecarlo.py`, section 7) showed that rule is far too
+aggressive: stacks sized that way hit a 35% drawdown within a year in 90%+ of
+simulated years. What decides survival over a year is **leverage when the
+stack is full**:
 
 ```
-max_legs ≈ balance × InpGG_BasketStopPctOfBalance% ÷ (daily σ in $ × $ per leg per $1)
+full-stack leverage = legs × 0.01 lot × 100 oz × gold price ÷ balance
+                    ≈ legs × 4,300 ÷ balance        (gold ≈ $4,300)
 ```
 
-| Balance | Basket stop | Legs that survive a 1σ day ($81) |
+| Full-stack leverage | Simulated result ($10k, guards on, one year) |
+|---|---|
+| ≤ 0.5× (1 leg) | drawdown halt in 1–16% of years |
+| ≈ 1× (2 legs) | halt in 12–52% of years, depending on signal quality |
+| ≥ 2× (5+ legs) | halt in 45–96% of years; more legs *lowers* median return even with a good signal |
+
+Rule: **keep full-stack leverage at or below about 1×**, so `max legs ≈ balance ÷ 4,300`.
+
+| Balance | Legs (0.01) at ≤ 1× | `InpGG_MaxTotalLots` |
 |---:|---:|---:|
-| $1,000 | 15% | ~2 |
-| $5,000 | 15% | ~9 |
-| $10,000 | 15% | ~18 |
-| $20,000 | 15% | ~37 |
+| $1,000 | 0: even one 0.01 leg is 4.3× | use a cent/micro account (0.001 lots) or don't trade gold |
+| $5,000 | 1 | 0.01 |
+| $10,000 | 2 | 0.02 |
+| $20,000 | 4–5 | 0.05 |
+| $120,000+ | 28 (the certified cap) | 0.28 |
 
-**This is the core finding.** At 0.01 lot per leg, the certified 28-leg cap is
-a $20k+ design. On a $1–3k account, either the stack cap comes down or the stop
-gets hit on normal days. Set `InpGG_MaxTotalLots` (for example 0.05 on $5k) to
-make the cap explicit.
+**This is the core finding.** The certified 28-leg cap needs about $120k to
+stay near 1× leverage. On a $1–10k account, the stack size, not the signal, is
+what decides whether the account survives.
 
 Shipped defaults are deliberately loose "catastrophe only" levels. Tighten them
 to your account before live use:
@@ -197,3 +210,65 @@ python tools/audit_review.py "exports/*_audit.csv" --start-equity 1000 ^
   verdict.
 
 Tests: `python -m unittest discover -s tools/tests`.
+
+## 7. Monte Carlo: what the maths can and can't say
+
+`tools/basket_montecarlo.py` simulates one year of hourly gold prices
+thousands of times:
+
+- **Prices:** GARCH(1,1) with Student-t shocks. This gives volatility
+  clustering and fat tails, calibrated to 30% annual volatility (checked: 29.9%
+  across seeds).
+- **Trends:** hidden up/down trend regimes that last about 5 days on average.
+- **Weekends:** a separate weekend gap each week.
+- **Basket:** the strategy's mechanics. A direction flip closes all legs and
+  opens leg 1 the new way, legs are added every 3 hours up to the cap, and
+  everything is flattened on Friday.
+- **Costs:** $0.30 spread per leg and −$0.30 swap per leg per night.
+- **Guards:** the same rules as `NMACD_BT2_GoldGuards.mqh`.
+- **Fair comparisons:** every setup runs on the same price paths (common
+  random numbers), so differences come from the rules, not luck.
+
+**It can't prove NMACD BT2 is profitable.** The EA's regime indicators
+(`.ex5`) aren't in the repo, and the network policy blocks price-data sites.
+So the direction signal is a generic stand-in whose quality you set as
+*accuracy*: the chance it points the right way after each trend change.
+0.50 means no edge.
+
+**$1,000 account, 1,000 simulated years per cell** (`grid --balance 1000`):
+
+| Setup | Accuracy 0.50 | 0.60 | 0.70 |
+|---|---|---|---|
+| Certified: 28 legs, no stops | ruin 93%, median −89% | ruin 87% | ruin 78% |
+| 28 legs + default guards | ruin 0%, median −23% | median −19% | median −15% |
+| 1 leg + guards | median −18% | median −6% | median +20% |
+
+**$10,000 account, guards on, by stack size** (median one-year return / share
+of years hitting the 35% drawdown halt):
+
+| Legs (full-stack leverage) | Accuracy 0.50 | 0.60 | 0.70 |
+|---|---|---|---|
+| 1 (0.4×) | −2% / 16% | +14% / 5% | +30% / 1% |
+| 2 (0.9×) | −11% / 52% | +24% / 29% | +56% / 12% |
+| 3 (1.3×) | −16% / 72% | +19% / 47% | +75% / 26% |
+| 8 (3.4×) | −17% / 93% | −1% / 80% | +44% / 61% |
+| 18 (7.7×) | −16% / 96% | −3% / 91% | +18% / 77% |
+
+What this shows:
+
+1. **With no stops, the certified 28-leg stack is ruined in most simulated
+   years on $1k**, even when the signal is right 75% of the time (72% ruin).
+   The structure fails before the signal matters.
+2. **The guards remove ruin but don't create profit.** With no edge, they turn
+   "account wiped out" into "−20% and halted".
+3. **More legs is worse, even with a real edge.** At 70% accuracy on $10k,
+   3 legs has a median of +75% and 18 legs +18%. Over-betting past about 1×
+   leverage adds more volatility than return (the Kelly effect).
+4. **It needs a real edge to make money.** With guards and sensible size, the
+   median year only turns positive somewhere above 55–60% accuracy. Whether
+   NMACD has that can only be measured on real data: backtest this build, then
+   run `basket_montecarlo.py audit` on its audit CSVs to resample its own
+   baskets.
+
+Reproduce: `python tools/basket_montecarlo.py grid --paths 1000 --balance 1000`
+(about 1 minute on 4 cores; seeds are fixed, so results repeat exactly).
